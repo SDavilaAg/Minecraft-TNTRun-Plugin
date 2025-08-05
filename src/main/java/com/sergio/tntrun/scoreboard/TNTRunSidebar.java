@@ -30,27 +30,24 @@ public class TNTRunSidebar {
             objective.setDisplayName(ChatColor.GOLD + "§l§nTNTRun");
         }
 
+        // Limpiar entradas previas
         for (String entry : board.getEntries()) {
             board.resetScores(entry);
         }
 
-        int line = 12;
-
-        // Título decorativo
+        // Entradas únicas usando colores invisibles
+        int line = 15;
         objective.getScore("§8§m----------------").setScore(line--);
         objective.getScore(" ").setScore(line--);
 
         // Monedas
-        objective.getScore(ChatColor.YELLOW + "Monedas:").setScore(line--);
-        objective.getScore(ChatColor.WHITE + "  " + coins).setScore(line--);
+        objective.getScore(ChatColor.YELLOW + "Monedas: " + ChatColor.WHITE + coins).setScore(line--);
 
-        // Saltos dobles
-        objective.getScore(ChatColor.AQUA + "Saltos dobles:").setScore(line--);
-        objective.getScore(ChatColor.WHITE + "  " + doubleJumpsRemaining).setScore(line--);
+        // Saltos dobles (siempre mostrar, incluso si es 1 o 0)
+        objective.getScore(ChatColor.AQUA + "Saltos dobles: " + ChatColor.WHITE + doubleJumpsRemaining).setScore(line--);
 
         // Jugadores vivos
-        objective.getScore(ChatColor.RED + "Vivos:").setScore(line--);
-        objective.getScore(ChatColor.WHITE + "  " + playersAlive).setScore(line--);
+        objective.getScore(ChatColor.RED + "Vivos: " + ChatColor.WHITE + playersAlive).setScore(line--);
 
         // Powerups activos
         if (noBreakTime > 0) {

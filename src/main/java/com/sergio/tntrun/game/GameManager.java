@@ -26,6 +26,8 @@ public class GameManager implements CommandExecutor {
     private final TNTRunSidebar sidebar;
     private final Map<UUID, Integer> playerDoubleJumps = new HashMap<>();
     private PowerupManager powerupManager;
+    private final Map<Location, Material> originalBlocks = new HashMap<>();
+
 
     private Location arenaSpawn;
     private boolean gameRunning = false;
@@ -147,10 +149,7 @@ public class GameManager implements CommandExecutor {
 
     private void startGame() {
         gameRunning = true;
-
-        powerupManager = new PowerupManager(plugin, this, arenaSpawn);
         powerupManager.startSpawning();
-        plugin.getServer().getPluginManager().registerEvents(new PowerupListener(powerupManager), plugin);
 
         for (UUID uuid : playersInGame) {
             Player player = Bukkit.getPlayer(uuid);
@@ -295,6 +294,34 @@ public class GameManager implements CommandExecutor {
         return false;
     }
 
+    private void saveArenaState() {
+        originalBlocks.clear();
+        World world = arenaSpawn.getWorld();
+        int minX = arenaSpawn.getBlockX() - 40, maxX = arenaSpawn.getBlockX() + 40;
+        int minZ = arenaSpawn.getBlockZ() - 40, maxZ = arenaSpawn.getBlockZ() + 40;
+        int minY = arenaSpawn.getBlockY() - 5, maxY = arenaSpawn.getBlockY() + 5;
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int y = minY; y <= maxY; y++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    Location loc = new Location(world, x, y, z);
+                    Material mat = loc.getBlock().getType();
+                    if (destructibleBlocks.contains(mat)) {
+                        originalBlocks.put(loc.clone(), mat);
+                    }
+                }
+            }
+        }
+    }
+
+    private void restoreArenaState() {
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Map.Entry<Location, Material> entry : originalBlocks.entrySet()) {
+                entry.getKey().getBlock().setType(entry.getValue());
+            }
+        });
+    }
+
     public int getDoubleJumps(UUID uuid) {
         return playerDoubleJumps.getOrDefault(uuid, 0);
     }
@@ -309,5 +336,9 @@ public class GameManager implements CommandExecutor {
 
     public void addCoins(UUID uuid, int amount) {
         playerCoins.put(uuid, playerCoins.getOrDefault(uuid, 0) + amount);
+    }
+
+    public void setPowerupManager(PowerupManager powerupManager) {
+        this.powerupManager = powerupManager;
     }
 }

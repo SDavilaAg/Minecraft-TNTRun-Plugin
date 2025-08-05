@@ -17,14 +17,13 @@ public final class TNTRunPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         this.spawnLocation = new Location(Bukkit.getWorld("world"), 191, 22, -189);
-
+        this.powerupManager = new PowerupManager(this, null, spawnLocation);
         this.gameManager = new GameManager(this);
-        this.powerupManager = new PowerupManager(this, gameManager, spawnLocation);
+        this.powerupManager.setGameManager(gameManager);
+        this.gameManager.setPowerupManager(powerupManager); // <- Aquí
 
         this.getCommand("tntrun").setExecutor(gameManager);
-
         getServer().getPluginManager().registerEvents(new GameListener(gameManager, powerupManager), this);
-
         getServer().getPluginManager().registerEvents(new PowerupListener(powerupManager), this);
 
         getLogger().info("TNTRun Plugin habilitado!");

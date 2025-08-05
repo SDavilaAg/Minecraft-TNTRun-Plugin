@@ -15,8 +15,10 @@ import org.bukkit.util.Vector;
 import java.util.*;
 
 public class PowerupManager {
+
+    private  GameManager gameManager;
     private final Plugin plugin;
-    private final GameManager gameManager;
+
     private final Location spawnLocation;
     private final Random random = new Random();
     private final Set<Item> activePowerups = new HashSet<>();
@@ -32,7 +34,7 @@ public class PowerupManager {
         this.spawnLocation = spawnLocation;
     }
 
-    //Método para iniciar el spawn de powerups aleatorio y mostrar mensajes en chat de que se ha generado X powerup
+    /* Metodo para iniciar el spawn de powerups aleatorio y mostrar mensajes en chat de que se ha generado X powerup */
     public void startSpawning() {
         new BukkitRunnable() {
             @Override
@@ -91,7 +93,7 @@ public class PowerupManager {
         }.runTaskTimer(plugin, 0L, 20 * 20);
     }
 
-    //Método para crear un powerup con su item, nombre y efecto
+    //Metodo para crear un powerup con su item, nombre y efecto
     private ItemStack createPowerup(Material mat, String name, List<String> lore) {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
@@ -102,7 +104,7 @@ public class PowerupManager {
         return item;
     }
 
-    //Método para encontrar una posición segura en Y
+    //Metodo para encontrar una posición segura en Y
     private int findSafeY(Location base) {
         for (int i = 5; i >= -5; i--) {
             Location check = base.clone().add(0, i, 0);
@@ -114,8 +116,9 @@ public class PowerupManager {
         return base.getBlockY();
     }
 
-    //Método para recoger los powerups y mostrar mensajes y efectos de cada uno
+    //Metodo para recoger los powerups y mostrar mensajes y efectos de cada uno
     public void handlePickup(Player player, Item item) {
+        cleanActivePowerups();
         if (!activePowerups.contains(item)) return;
 
         activePowerups.remove(item);
@@ -124,27 +127,19 @@ public class PowerupManager {
         String name = item.getItemStack().getItemMeta().getDisplayName();
         if (name.contains("Doble Salto")) {
             gameManager.giveDoubleJumps(player.getUniqueId(), 1);
-            player.setAllowFlight(true); // Permitir vuelo al ganar salto doble
+            player.setAllowFlight(true);
             player.sendMessage(ChatColor.AQUA + "¡Has obtenido 1 salto doble!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
             player.sendTitle(ChatColor.GREEN + "¡Powerup!", ChatColor.stripColor(name), 5, 40, 10);
         } else if (name.contains("Velocidad")) {
             player.addPotionEffect(new org.bukkit.potion.PotionEffect(org.bukkit.potion.PotionEffectType.SPEED, 20 * 10, 1));
             long newUntil = System.currentTimeMillis() + 10000;
-            speedPowerup.put(player.getUniqueId(), newUntil);
+            speedPowerup.put(player.getUniqueId(), newUntil); // Siempre actualiza el tiempo
             player.sendMessage(ChatColor.AQUA + "¡Velocidad x2 por 10 segundos!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
             player.sendTitle(ChatColor.GREEN + "¡Powerup!", ChatColor.stripColor(name), 5, 40, 10);
 
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (speedPowerup.get(player.getUniqueId()) != null &&
-                            System.currentTimeMillis() >= speedPowerup.get(player.getUniqueId())) {
-                        speedPowerup.remove(player.getUniqueId());
-                    }
-                }
-            }.runTaskLater(plugin, 200L);
+            // No elimines el powerup aquí, solo deja que el tiempo expire naturalmente
         } else if (name.contains("Monedas")) {
             gameManager.addCoins(player.getUniqueId(), 5);
             player.sendMessage(ChatColor.GOLD + "¡Has ganado 5 monedas!");
@@ -152,20 +147,12 @@ public class PowerupManager {
             player.sendTitle(ChatColor.GREEN + "¡Powerup!", ChatColor.stripColor(name), 5, 40, 10);
         } else if (name.contains("No Romper Bloques")) {
             long newUntil = System.currentTimeMillis() + 5000;
-            noBreakBlocks.put(player.getUniqueId(), newUntil);
+            noBreakBlocks.put(player.getUniqueId(), newUntil); // Siempre actualiza el tiempo
+            Bukkit.getLogger().info("[TNTRun] Powerup 'No Romper Bloques' recogido por " + player.getName() + " (until=" + newUntil + ")");
             player.sendMessage(ChatColor.GREEN + "¡Durante 5 segundos no romperás bloques!");
             player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, 1f, 1.2f);
             player.sendTitle(ChatColor.GREEN + "¡Powerup!", ChatColor.stripColor(name), 5, 40, 10);
 
-            new BukkitRunnable() {
-                @Override
-                public void run() {
-                    if (noBreakBlocks.get(player.getUniqueId()) != null &&
-                            System.currentTimeMillis() >= noBreakBlocks.get(player.getUniqueId())) {
-                        noBreakBlocks.remove(player.getUniqueId());
-                    }
-                }
-            }.runTaskLater(plugin, 100L);
         }
 
         int coins = gameManager.getCoins(player);
@@ -178,10 +165,12 @@ public class PowerupManager {
 
     public boolean canBreakBlocks(Player player) {
         Long until = noBreakBlocks.get(player.getUniqueId());
-        return until == null || System.currentTimeMillis() > until;
+        boolean canBreak = (until == null || System.currentTimeMillis() > until);
+        Bukkit.getLogger().info("[TNTRun] canBreakBlocks para " + player.getName() + ": " + canBreak + " (until=" + until + ", now=" + System.currentTimeMillis() + ")");
+        return canBreak;
     }
 
-    // Método para obtener el tiempo restante de los powerups específicos
+    // Metodo para obtener el tiempo restante de los powerups específicos
     public int getNoBreakTimeLeft(Player player) {
         return getPowerupTimeLeft(noBreakBlocks, player);
     }
@@ -190,11 +179,19 @@ public class PowerupManager {
         return getPowerupTimeLeft(speedPowerup, player);
     }
 
-    // Método genérico para obtener el tiempo restante de cualquier powerup con su mapa
+    // Metodo genérico para obtener el tiempo restante de cualquier powerup con su mapa
     public int getPowerupTimeLeft(Map<UUID, Long> map, Player player) {
         Long until = map.get(player.getUniqueId());
         if (until == null) return 0;
         long left = (until - System.currentTimeMillis()) / 1000;
         return (int) Math.max(left, 0);
+    }
+
+    private void cleanActivePowerups() {
+        activePowerups.removeIf(item -> !item.isValid() || item.isDead() || !item.getWorld().getEntities().contains(item));
+    }
+
+    public void setGameManager(GameManager gameManager) {
+        this.gameManager = gameManager;
     }
 }
