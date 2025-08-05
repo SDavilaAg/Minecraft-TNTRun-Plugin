@@ -1,0 +1,15 @@
+name: TNTRun
+version: 1.0
+main: com.sergio.tntrun.TNTRunPlugin
+api-version: 1.20
+author: Sergio
+description: Plugin minijuego TNTRun para Spigot 1.20.1
+commands:
+  tntrun:
+    description: Comando base para TNTRun
+    usage: /<command> <start|stop|join|leave>
+    permission: tntrun.use
+permissions:
+  tntrun.use:
+    description: Permiso para usar comandos de TNTRun
+    default: true
